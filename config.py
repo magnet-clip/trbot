@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 
+
 class Config:
     METALS = "metals"
     AGRO = "agriculture"
@@ -20,7 +21,8 @@ class Config:
 
     def get_admins(self):
         admins = self.config['Bot']['admins']
+        print(admins)
         if len(admins) > 0:
-            return map(int, admins.split(","))
+            return list(map(int, map(str.strip, admins.split(","))))
 
         return []

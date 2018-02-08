@@ -1,6 +1,7 @@
 from telegram import Bot, Update
 from telegram.error import TelegramError
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext.filters import InvertedFilter
 
 from decorators import log_member, log_method
 from config import Config
@@ -39,6 +40,10 @@ class AdminManager:
     def process(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text="Yo admin")
 
+    @log_member
+    def cancel_publish(self, bot: Bot, update: Update):
+        pass
+
 
 class UserManager:
     @log_member
@@ -60,35 +65,38 @@ user = UserManager()
 admins = config.get_admins()
 
 
-class PublishingStates(Enum):
-    Requesting = 1,
-    GettingUrl = 2,
-    ChoosingChannels = 3,
-    Confirming = 4
+class Publishing(Enum):
+    GetUrl = 1
 
 
 if __name__ == "__main__":
     # Add handlers to dispatcher
     adminFilter = Filters.user(admins)
-
-    # publishingProcess = {
-    #     PublishingStates.Requesting: admin.publisher.request,
-    #     PublishingStates.GettingUrl: admin.publisher.getUrl,
-    #     PublishingStates.ChoosingChannels: admin.publisher.chooseChannels,
-    #     PublishingStates.Confirming: admin.publisher.confirm
-    # }
-    # dispatcher.add_handler(ConversationHandler(entry_points=[publishHandler], states=publishingProcess, fallbacks=None))
+    notAdminFilter = ~adminFilter
 
     # Interaction with Admin
+    # - Start command
     dispatcher.add_handler(CommandHandler(command="start", callback=admin.start, filters=adminFilter))
-    publishHandler = CommandHandler(command="publish", callback=admin.publish_request, filters=adminFilter)
-    dispatcher.add_handler(publishHandler)
+    # - Any text message
     dispatcher.add_handler(MessageHandler(Filters.text & adminFilter, admin.process))
+    # - Incoming contact details
     dispatcher.add_handler(MessageHandler(Filters.contact & adminFilter, admin.received_contact))
 
+    # publishHandler = CommandHandler(command="publish", callback=admin.publish_request, filters=adminFilter)
+    # publishHandler = ConversationHandler(
+    #     entry_points=[CommandHandler(command="publish", callback=admin.publish_request, filters=adminFilter)],
+    #     states={
+    #         Publishing.GetUrl: []
+    #     },
+    #     fallbacks=[CommandHandler("cancel", callback=admin.cancel_publish)]
+    # )
+    # dispatcher.add_handler(publishHandler)
+
     # Interaction with User
-    dispatcher.add_handler(CommandHandler(command="start", callback=user.start, filters=~adminFilter))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~adminFilter, user.process))
+    # - Start command
+    dispatcher.add_handler(CommandHandler(command="start", callback=user.start, filters=notAdminFilter))
+    # - Any text message
+    dispatcher.add_handler(MessageHandler(Filters.text & notAdminFilter, user.process))
 
     # Error handling
     dispatcher.add_error_handler(error)
