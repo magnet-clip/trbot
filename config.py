@@ -28,3 +28,13 @@ class Config:
             return list(map(int, map(str.strip, admins.split(","))))
 
         return []
+
+    def get_channel_names(self):
+        return list(map(lambda x: x["name"], self.channels))
+
+    def get_channel_id(self, name):
+        for item in self.channels:
+            if item['name'] == name:
+                return item['address']
+
+        return None
