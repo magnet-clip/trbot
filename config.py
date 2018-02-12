@@ -2,15 +2,17 @@ from configparser import ConfigParser
 
 
 class Config:
-    METALS = "metals"
-    AGRO = "agriculture"
-    ENERGY = "energy"
-
-    channels = {
-        METALS: "@tr_commodities_metals",
-        AGRO: "@tr_commodities_agriculture",
-        ENERGY: "@tr_commodities_energy"
-    }
+    channels = [{
+            "address": "@tr_commodities_metals",
+            "name": "Metals"
+        }, {
+            "address": "@tr_commodities_agriculture",
+            "name": "Agriculture"
+        }, {
+            "address": "@tr_commodities_energy",
+            "name": "Energy"
+        }
+    ]
 
     def __init__(self, filename):
         self.config = ConfigParser()
