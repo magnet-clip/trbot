@@ -1,5 +1,6 @@
-#Installation
-##Installing linux packages 
+# Installation
+
+## Installing linux packages 
 
 `sudo apt-get install mysql-server python3 git vim`
 
@@ -11,22 +12,10 @@
 
 ## Setting up db
 
- * Run mysql: `mysql -u root -ppassword`
- * Execute the following script:
+ * Create a copy of sample sql: `cp ./db_create.sample.sql ./db_create.sql`
+ * Edit it and replace `DbName`, `user` and `user_password` to desired values
+ * Run this script: `mysql -u root -ppassword < ./db_create.sql`
  
-```sql
-CREATE DATABASE DbName;
-USE DbName;
-SET NAMES utf8;
-SET collation_connection = 'utf8_general_ci';
-ALTER DATABASE TrCommodities
-CHARACTER SET utf8
-COLLATE utf8_general_ci;
-CREATE USER 'user'@'localhost' IDENTIFIED BY 'user_password';
-GRANT ALL PRIVILEGES ON TrCommodities.* TO 'user'@'localhost'
-WITH GRANT OPTION;
-```
-
 ## Configuring
  * Create a copy of sample config: `cp ./config.example.ini ./config.ini`
  * Edit it and set necessary values `vim ./config.ini`
