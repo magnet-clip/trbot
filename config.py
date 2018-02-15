@@ -38,3 +38,15 @@ class Config:
                 return item['address']
 
         return None
+
+    def get_db_host(self):
+        return self.config['Db']['url']
+
+    def get_db_user(self):
+        return self.config['Db']['login']
+
+    def get_db_password(self):
+        return self.config['Db']['password']
+
+    def get_db_name(self):
+        return self.config['Db']['db']

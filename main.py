@@ -1,14 +1,15 @@
 from telegram import Bot, Update, TelegramError
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from config import Config
+from database import Database
 
-import admin
-import user
+from actors import user, admin, watcher
 
 import logging
 
 # read config
 config = Config('config.ini')
+database = Database(config)
 
 # set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -34,6 +35,10 @@ if __name__ == "__main__":
     # Add handlers to dispatcher
     adminFilter = Filters.user(admins)
     notAdminFilter = ~adminFilter
+
+    # Watching users
+    for handler in watcher.create_handlers():
+        dispatcher.add_handler(handler)
 
     # Interaction with Admin
     for handler in admin.create_handlers(adminFilter):
