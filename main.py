@@ -20,7 +20,6 @@ up = Updater(token=config.telegram_api_key(), workers=32)
 dispatcher = up.dispatcher
 
 # save some data
-admin.config = config
 user.config = config
 
 
@@ -41,7 +40,7 @@ if __name__ == "__main__":
         dispatcher.add_handler(handler)
 
     # Interaction with Admin
-    for handler in admin.create_handlers(adminFilter):
+    for handler in admin.create_handlers(config, adminFilter):
         dispatcher.add_handler(handler)
 
     # Interaction with User

@@ -2,7 +2,7 @@
 
 ## Installing linux packages 
 
-`sudo apt-get install mysql-server python3 git vim`
+`sudo apt-get install mysql-server python3 git vim python3-pip`
 
 ## Getting code
 `git pull https://github.com/magnet-clip/trbot`
@@ -22,4 +22,4 @@
 
 
 # Running
-Execute `nohup python3 ./main.py`
+Execute `nohup python3 ./main.py &`

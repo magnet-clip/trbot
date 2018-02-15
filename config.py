@@ -3,13 +3,10 @@ from configparser import ConfigParser
 
 class Config:
     channels = [{
-            "address": "@tr_commodities_metals",
+            "address": "@tr_commodities_metals_test",
             "name": "Metals"
         }, {
-            "address": "@tr_commodities_agriculture",
-            "name": "Agriculture"
-        }, {
-            "address": "@tr_commodities_energy",
+            "address": "@tr_commodities_energy_test",
             "name": "Energy"
         }
     ]
@@ -50,3 +47,6 @@ class Config:
 
     def get_db_name(self):
         return self.config['Db']['db']
+
+    def get_version(self):
+        return self.config['Version']['version']
