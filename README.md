@@ -23,3 +23,8 @@
 
 # Running
 Execute `nohup python3 ./main.py &`
+
+
+# Todo list
+ - Add cancel button for publishing workflow to any step
+ 
