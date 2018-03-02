@@ -37,8 +37,10 @@ class TRKD:
             }
         }
         r = requests.post(url, data=json.dumps(body), headers=self.headers)
-        print(r)
-        return r
+        if r.status_code == 200:
+            return r.json()["RetrieveItem_Response_3"]
+        else:
+            return None
 
     def getQuotesList(self, rics):
         url = "http://api.trkd.thomsonreuters.com/api/Quotes/Quotes.svc/REST/Quotes_1/RetrieveItem_3"
@@ -50,8 +52,10 @@ class TRKD:
             }
         }
         r = requests.post(url, data=json.dumps(body), headers=self.headers)
-        print(r)
-        return r
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return None
 
     def getNewsHeadlines(self, filter):
         url = "http://api.trkd.thomsonreuters.com/api/News/News.svc/REST/News_1/RetrieveHeadlineML_1"

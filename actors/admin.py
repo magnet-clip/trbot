@@ -1,5 +1,6 @@
-from telegram import Bot, Update, ReplyKeyboardMarkup
-from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler
+from telegram import Bot, Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler, InlineQueryHandler, \
+    CallbackQueryHandler
 
 from config import Config
 from helpers.trkd import TRKD
@@ -19,7 +20,10 @@ class Admin:
         self.config = config
 
     def start(self, bot: Bot, update: Update):
-        bot.send_message(chat_id=update.message.chat_id, text="Admin")
+        options = [[InlineKeyboardButton(text="Опубликовать статью", callback_data="publish")],
+                   [InlineKeyboardButton(text="Разослать рики", callback_data="rics")]]
+        bot.send_message(chat_id=update.message.chat_id, text="Выберите команду",
+                         reply_markup=InlineKeyboardMarkup(options, one_time_keyboard=True))
 
     def received_contact(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text="Contact")
@@ -29,7 +33,13 @@ class Admin:
 
     def publish_request(self, bot: Bot, update: Update):
         """Fist step for publishing"""
-        bot.send_message(chat_id=update.message.chat_id, text="Скопируйте сюда сслылку на статью для публикации")
+        if update.message is not None:
+            chat_id = update.message.chat_id
+        elif update.effective_message is not None:
+            chat_id = update.effective_message.chat_id
+        else:
+            return ConversationHandler.END
+        bot.send_message(chat_id=chat_id, text="Скопируйте сюда сслылку на статью для публикации")
         return Publish.GetUrl
 
     def publish_url(self, bot: Bot, update: Update, user_data):
@@ -89,7 +99,15 @@ class Admin:
         chats = list(map(lambda x: [x], self.config.get_channel_names()))
         chats.append(["Cancel"])
         markup = ReplyKeyboardMarkup(chats, one_time_keyboard=True)
-        bot.send_message(chat_id=update.message.chat_id, text="В какой чат отправить рассылку?", reply_markup=markup)
+
+        if update.message is not None:
+            chat_id = update.message.chat_id
+        elif update.effective_message is not None:
+            chat_id = update.effective_message.chat_id
+        else:
+            return ConversationHandler.END
+
+        bot.send_message(chat_id=chat_id, text="В какой чат отправить рассылку?", reply_markup=markup)
 
         return Distribute.PublishOrCancel
 
@@ -100,22 +118,22 @@ class Admin:
             bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
             return ConversationHandler.END
         else:
-            options = [["Yes"], ["No"]]
-            bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
-
             # todo fetch rics and create array; store to user_data; send now to admin to confirm
             rics = self.config.get_channel_by_name(channel).get_publications()[0].get_rics()
 
             ric_names = list(map(lambda x: x.ric, rics))
             quotes = self.trkd.getQuotesList(ric_names)
-            print(quotes)
 
-            bot.send_message(chat_id=update.message.chat_id, text=ric_names)
+            if quotes is not None:
+                bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
+                bot.send_message(chat_id=update.message.chat_id, text=ric_names)
+                bot.send_message(chat_id=update.message.chat_id, text="в чат {}?".format(channel),
+                                 reply_markup=ReplyKeyboardMarkup([["Yes"], ["No"]], one_time_keyboard=True))
 
-            bot.send_message(chat_id=update.message.chat_id, text="в чат {}?".format(channel),
-                             reply_markup=ReplyKeyboardMarkup(options, one_time_keyboard=True))
-
-            return Distribute.Send
+                return Distribute.Send
+            else:
+                bot.send_message(chat_id=update.message.chat_id, text="Не удалось получить котировки! Попробуйте снова")
+                return ConversationHandler.END
 
     def distribute_finally(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
@@ -140,7 +158,8 @@ def create_handlers(config: Config, trkd: TRKD, admin_filter):
         CommandHandler(command="version", callback=admin.get_version, filters=admin_filter),
 
         ConversationHandler(
-            entry_points=[CommandHandler(command="rics", callback=admin.distribute_request, filters=admin_filter)],
+            entry_points=[CommandHandler(command="rics", callback=admin.distribute_request, filters=admin_filter),
+                          CallbackQueryHandler(pattern="rics", callback=admin.distribute_request)],
             states={
                 Distribute.PublishOrCancel: [
                     MessageHandler(filters=Filters.text, callback=admin.distribute_show_and_confirm, pass_user_data=True)],
@@ -153,7 +172,8 @@ def create_handlers(config: Config, trkd: TRKD, admin_filter):
 
         # - Incoming contact details
         ConversationHandler(
-            entry_points=[CommandHandler(command="publish", callback=admin.publish_request, filters=admin_filter)],
+            entry_points=[CommandHandler(command="publish", callback=admin.publish_request, filters=admin_filter),
+                          CallbackQueryHandler(pattern="publish", callback=admin.distribute_request)],
             states={
                 Publish.GetUrl: [MessageHandler(filters=Filters.text, callback=admin.publish_url, pass_user_data=True)],
                 Publish.AddComments: [MessageHandler(callback=admin.publish_comments, pass_user_data=True, filters=Filters.text)],
