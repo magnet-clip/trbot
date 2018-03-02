@@ -53,7 +53,7 @@ class TRKD:
         }
         r = requests.post(url, data=json.dumps(body), headers=self.headers)
         if r.status_code == 200:
-            return r.json()
+            return r.json()["RetrieveItem_Response_3"]
         else:
             return None
 

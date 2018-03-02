@@ -123,6 +123,14 @@ class Admin:
 
             ric_names = list(map(lambda x: x.ric, rics))
             quotes = self.trkd.getQuotesList(ric_names)
+            for item in quotes['ItemResponse']:
+                for element in item['Item']:
+                    print("===============")
+                    ric = element['RequestKey']['Name']
+                    print(ric)
+                    for nibble in element['Fields']['Field']:
+                        data_type = nibble['DataType']
+                        print(nibble['Name'], data_type, nibble[data_type])
 
             if quotes is not None:
                 bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
