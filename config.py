@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 class Ric:
     def __init__(self, ric, name):
         self.ric = ric
-        self.name = ric if ric != "" else name
+        self.name = name if name != "" else ric
 
 
 class Publish:

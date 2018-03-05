@@ -119,22 +119,80 @@ class Admin:
             return ConversationHandler.END
         else:
             # todo fetch rics and create array; store to user_data; send now to admin to confirm
-            rics = self.config.get_channel_by_name(channel).get_publications()[0].get_rics()
+            rics_data = self.config.get_channel_by_name(channel).get_publications()[0].get_rics()
 
-            ric_names = list(map(lambda x: x.ric, rics))
+            rics = {}
+            for item in rics_data:
+                rics[item.ric] = item.name
+
+            ric_names = rics.keys()
+
             quotes = self.trkd.getQuotesList(ric_names)
-            for item in quotes['ItemResponse']:
-                for element in item['Item']:
-                    print("===============")
-                    ric = element['RequestKey']['Name']
-                    print(ric)
-                    for nibble in element['Fields']['Field']:
-                        data_type = nibble['DataType']
-                        print(nibble['Name'], data_type, nibble[data_type])
+            fields_data = [
+                {
+                    "name": "Мин",
+                    "field": "BID"
+                }, {
+                    "name": "Макс",
+                    "field": "ASK"
+                }, {
+                    "name": "Среднее",
+                    "field": "PRIMACT_1"
+                }, {
+                    "name": "Изменение",
+                    "field": "SEC_ACT_1"
+                }, {
+                    "name": "Дата",
+                    "field": "GV1_DATE"
+                }, {
+                    "name": "Дата",
+                    "field": "VALUE_DT1"
+                }
+            ]
 
             if quotes is not None:
+                fields = {}
+                data = {}
+
+                for item in quotes['ItemResponse']:
+                    records = {}
+
+                    for itemX in fields_data:
+                        field = itemX['field']
+                        name = itemX['name']
+                        fields[field] = name
+
+                        if name not in records:
+                            records[name] = {
+                                'field': field,
+                                'value': "N/A"
+                            }
+
+                    for element in item['Item']:
+                        ric = element['RequestKey']['Name']
+                        for nibble in element['Fields']['Field']:
+                            data_type = nibble['DataType']
+                            field_name = nibble['Name']
+                            field_value = nibble[data_type]
+                            # print(field_name, data_type, field_value)
+
+                            if field_name in fields:
+                                name = fields[field_name]
+                                records[name]['value'] = field_value
+
+                        data[ric] = records
+
                 bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
-                bot.send_message(chat_id=update.message.chat_id, text=ric_names)
+                for ric in data:
+                    bot.send_message(chat_id=update.message.chat_id, text=ric + " " + rics[ric])
+                    msg = ""
+                    for name in data[ric]:
+                        msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
+                    bot.send_message(chat_id=update.message.chat_id, text=msg)
+
+                user_data['rics'] = rics
+                user_data['data'] = data
+
                 bot.send_message(chat_id=update.message.chat_id, text="в чат {}?".format(channel),
                                  reply_markup=ReplyKeyboardMarkup([["Yes"], ["No"]], one_time_keyboard=True))
 
@@ -145,7 +203,16 @@ class Admin:
 
     def distribute_finally(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
-            bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text="Test")
+            rics = user_data['rics']
+            data = user_data['data']
+
+            for ric in data:
+                bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=ric + " " + rics[ric])
+                msg = ""
+                for name in data[ric]:
+                    msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
+                bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=msg)
+
             bot.send_message(chat_id=update.message.chat_id, text="Разослано!")
         else:
             bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
