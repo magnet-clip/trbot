@@ -207,7 +207,7 @@ class Admin:
             data = user_data['data']
 
             for ric in data:
-                bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=ric + " " + rics[ric])
+                bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=rics[ric])
                 msg = ""
                 for name in data[ric]:
                     msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
