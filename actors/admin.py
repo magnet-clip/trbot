@@ -1,3 +1,5 @@
+import copy
+
 from telegram import Bot, Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler, InlineQueryHandler, \
     CallbackQueryHandler
@@ -128,53 +130,21 @@ class Admin:
             ric_names = rics.keys()
 
             quotes = self.trkd.getQuotesList(ric_names)
-            fields_data = [
-                {
-                    "name": "Мин",
-                    "field": "BID"
-                }, {
-                    "name": "Макс",
-                    "field": "ASK"
-                }, {
-                    "name": "Среднее",
-                    "field": "PRIMACT_1"
-                }, {
-                    "name": "Изменение",
-                    "field": "SEC_ACT_1"
-                }, {
-                    "name": "Дата",
-                    "field": "GV1_DATE"
-                }, {
-                    "name": "Дата",
-                    "field": "VALUE_DT1"
-                }
-            ]
+
+            fields, template = self.config.get_fields()
 
             if quotes is not None:
-                fields = {}
                 data = {}
 
                 for item in quotes['ItemResponse']:
-                    records = {}
-
-                    for itemX in fields_data:
-                        field = itemX['field']
-                        name = itemX['name']
-                        fields[field] = name
-
-                        if name not in records:
-                            records[name] = {
-                                'field': field,
-                                'value': "N/A"
-                            }
-
                     for element in item['Item']:
+                        records = copy.deepcopy(template)
                         ric = element['RequestKey']['Name']
                         for nibble in element['Fields']['Field']:
                             data_type = nibble['DataType']
                             field_name = nibble['Name']
                             field_value = nibble[data_type]
-                            # print(field_name, data_type, field_value)
+                            print(field_name, data_type, field_value)
 
                             if field_name in fields:
                                 name = fields[field_name]

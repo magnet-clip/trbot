@@ -37,10 +37,32 @@ class Channel:
 
 
 class Config:
-    def __init__(self, filename, fname):
+    fields_data = [
+        {
+            "name": "Мин",
+            "field": "BID"
+        }, {
+            "name": "Макс",
+            "field": "ASK"
+        }, {
+            "name": "Среднее",
+            "field": "PRIMACT_1"
+        }, {
+            "name": "Изменение",
+            "field": "SEC_ACT_1"
+        }, {
+            "name": "Дата",
+            "field": "GV1_DATE"
+        }, {
+            "name": "Дата",
+            "field": "VALUE_DT1"
+        }
+    ]
+
+    def __init__(self, config_file, channels_file):
         self.config = ConfigParser()
-        self.config.read_file(open(filename))
-        self.channels = [Channel(channel) for channel in json.load(open(fname, encoding="utf8"))]
+        self.config.read_file(open(config_file))
+        self.channels = [Channel(channel) for channel in json.load(open(channels_file, encoding="utf8"))]
 
     def telegram_api_key(self):
         return self.config['Telegram']['api_key']
@@ -100,3 +122,19 @@ class Config:
                 return channel_info
 
         return None
+
+    def get_fields(self):
+        template = {}
+        fields = {}
+        for item in self.fields_data:
+            field = item['field']
+            name = item['name']
+            fields[field] = name
+
+            if name not in template:
+                template[name] = {
+                    'field': field,
+                    'value': "N/A"
+                }
+
+        return fields, template
