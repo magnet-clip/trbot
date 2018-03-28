@@ -1,5 +1,6 @@
 import copy
 
+import time
 from telegram import Bot, Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ConversationHandler, CommandHandler, Filters, MessageHandler, InlineQueryHandler, \
     CallbackQueryHandler
@@ -21,6 +22,15 @@ class Admin:
         self.trkd = trkd
         self.config = config
 
+    def _tryExcept(f):
+        def handler(self, bot: Bot, update: Update, user_data=None):
+            try:
+                return f(self, bot, update, user_data)
+            except Exception as err:
+                bot.send_message(chat_id=update.message.chat_id, text="К сожалению произошла ошибка: {0}".format(err))
+                return ConversationHandler.END
+        return handler
+
     def start(self, bot: Bot, update: Update):
         options = [[InlineKeyboardButton(text="Опубликовать статью", callback_data="publish")],
                    [InlineKeyboardButton(text="Разослать рики", callback_data="rics")]]
@@ -33,7 +43,8 @@ class Admin:
     def process(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text="Yo admin")
 
-    def publish_request(self, bot: Bot, update: Update):
+    @_tryExcept
+    def publish_request(self, bot: Bot, update: Update, user_data):
         """Fist step for publishing"""
         if update.message is not None:
             chat_id = update.message.chat_id
@@ -44,6 +55,7 @@ class Admin:
         bot.send_message(chat_id=chat_id, text="Скопируйте сюда сслылку на статью для публикации")
         return Publish.GetUrl
 
+    @_tryExcept
     def publish_url(self, bot: Bot, update: Update, user_data):
         # todo check if url is correct
         user_data['article_url'] = update.message.text
@@ -51,6 +63,7 @@ class Admin:
         bot.send_message(chat_id=update.message.chat_id, text="Тут можно ввести комментарий, который будет показан при публикации. Если комментарий не требуется, введите знак -")
         return Publish.AddComments
 
+    @_tryExcept
     def publish_comments(self, bot: Bot, update: Update, user_data):
         user_data['comment'] = update.message.text
 
@@ -67,6 +80,7 @@ class Admin:
         else:
             return user_data['article_url']
 
+    @_tryExcept
     def publish_chats(self, bot: Bot, update: Update, user_data):
         channel = update.message.text
         user_data['channel_name'] = channel
@@ -81,6 +95,7 @@ class Admin:
                              reply_markup=ReplyKeyboardMarkup(options, one_time_keyboard=True))
             return Publish.PublishOrCancel
 
+    @_tryExcept
     def publish_final(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
             bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=self.get_text(user_data))
@@ -90,14 +105,17 @@ class Admin:
 
         return ConversationHandler.END
 
+    @_tryExcept
     def publish_cancel(self, bot: Bot, update: Update, user_data):
         bot.send_message(chat_id=update.message.chat_id, text="Публикация отменена!")
         return ConversationHandler.END
 
+    @_tryExcept
     def get_version(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text=self.config.get_version())
 
-    def distribute_request(self, bot: Bot, update: Update):
+    @_tryExcept
+    def distribute_request(self, bot: Bot, update: Update, user_data):
         chats = list(map(lambda x: [x], self.config.get_channel_names()))
         chats.append(["Cancel"])
         markup = ReplyKeyboardMarkup(chats, one_time_keyboard=True)
@@ -113,6 +131,7 @@ class Admin:
 
         return Distribute.PublishOrCancel
 
+    @_tryExcept
     def distribute_show_and_confirm(self, bot: Bot, update: Update, user_data):
         channel = update.message.text
         user_data['channel_name'] = channel
@@ -129,7 +148,7 @@ class Admin:
 
             ric_names = rics.keys()
 
-            quotes = self.trkd.getQuotesList(ric_names)
+            quotes = self.trkd.get_quotelist(ric_names)
 
             fields, template = self.config.get_fields()
 
@@ -171,6 +190,7 @@ class Admin:
                 bot.send_message(chat_id=update.message.chat_id, text="Не удалось получить котировки! Попробуйте снова")
                 return ConversationHandler.END
 
+    @_tryExcept
     def distribute_finally(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
             rics = user_data['rics']
@@ -182,16 +202,17 @@ class Admin:
                 for name in data[ric]:
                     msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
                 bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=msg)
+                time.sleep(1)
 
             bot.send_message(chat_id=update.message.chat_id, text="Разослано!")
         else:
             bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
         return ConversationHandler.END
 
+    @_tryExcept
     def distribute_cancel(self, bot: Bot, update: Update, user_data):
         bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
         return ConversationHandler.END
-
 
 def create_handlers(config: Config, trkd: TRKD, admin_filter):
     admin = Admin(config, trkd)
@@ -218,7 +239,7 @@ def create_handlers(config: Config, trkd: TRKD, admin_filter):
         # - Incoming contact details
         ConversationHandler(
             entry_points=[CommandHandler(command="publish", callback=admin.publish_request, filters=admin_filter),
-                          CallbackQueryHandler(pattern="publish", callback=admin.distribute_request)],
+                          CallbackQueryHandler(pattern="publish", callback=admin.publish_request)],
             states={
                 Publish.GetUrl: [MessageHandler(filters=Filters.text, callback=admin.publish_url, pass_user_data=True)],
                 Publish.AddComments: [MessageHandler(callback=admin.publish_comments, pass_user_data=True, filters=Filters.text)],

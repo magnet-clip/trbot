@@ -1,7 +1,7 @@
 from telegram import Bot, Update, TelegramError
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from config import Config
-from database import Database
+# from database import Database
 
 
 from actors import user, admin, watcher
@@ -12,7 +12,7 @@ import logging
 from helpers.trkd import TRKD
 
 config = Config('config.ini', 'channels.json')
-database = Database(config)
+# database = Database(config)
 
 # set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.WARN)
