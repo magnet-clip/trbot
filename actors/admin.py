@@ -21,21 +21,35 @@ class Admin:
     def __init__(self, config: Config, trkd: TRKD):
         self.trkd = trkd
         self.config = config
+        self.keyboards = []
 
-    def _tryExcept(f):
+    def _try_except(f):
         def handler(self, bot: Bot, update: Update, user_data=None):
             try:
                 return f(self, bot, update, user_data)
             except Exception as err:
-                bot.send_message(chat_id=update.message.chat_id, text="К сожалению произошла ошибка: {0}".format(err))
+                bot.send_message(chat_id=update.effective_chat.id, text="К сожалению произошла ошибка: {0}".format(err))
                 return ConversationHandler.END
         return handler
 
-    def start(self, bot: Bot, update: Update):
+    def _ensure_no_keyboards(f):
+        def handler(self, bot: Bot, update: Update, user_data=None):
+            self._remove_keyboards(bot, update)
+            return f(self, bot, update, user_data)
+        return handler
+
+    def _remove_keyboards(self, bot, update: Update):
+        while self.keyboards:
+            keyboard_id = self.keyboards.pop()
+            bot.edit_message_reply_markup(chat_id=update.effective_chat.id, message_id=keyboard_id, reply_markup=None)
+
+    @_ensure_no_keyboards
+    def start(self, bot: Bot, update: Update, user_data):
         options = [[InlineKeyboardButton(text="Опубликовать статью", callback_data="publish")],
                    [InlineKeyboardButton(text="Разослать рики", callback_data="rics")]]
-        bot.send_message(chat_id=update.message.chat_id, text="Выберите команду",
+        message = bot.send_message(chat_id=update.message.chat_id, text="Выберите команду",
                          reply_markup=InlineKeyboardMarkup(options, one_time_keyboard=True))
+        self.keyboards.append(message.message_id)
 
     def received_contact(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text="Contact")
@@ -43,7 +57,8 @@ class Admin:
     def process(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text="Yo admin")
 
-    @_tryExcept
+    @_try_except
+    @_ensure_no_keyboards
     def publish_request(self, bot: Bot, update: Update, user_data):
         """Fist step for publishing"""
         if update.message is not None:
@@ -55,7 +70,7 @@ class Admin:
         bot.send_message(chat_id=chat_id, text="Скопируйте сюда сслылку на статью для публикации")
         return Publish.GetUrl
 
-    @_tryExcept
+    @_try_except
     def publish_url(self, bot: Bot, update: Update, user_data):
         # todo check if url is correct
         user_data['article_url'] = update.message.text
@@ -63,7 +78,7 @@ class Admin:
         bot.send_message(chat_id=update.message.chat_id, text="Тут можно ввести комментарий, который будет показан при публикации. Если комментарий не требуется, введите знак -")
         return Publish.AddComments
 
-    @_tryExcept
+    @_try_except
     def publish_comments(self, bot: Bot, update: Update, user_data):
         user_data['comment'] = update.message.text
 
@@ -80,7 +95,7 @@ class Admin:
         else:
             return user_data['article_url']
 
-    @_tryExcept
+    @_try_except
     def publish_chats(self, bot: Bot, update: Update, user_data):
         channel = update.message.text
         user_data['channel_name'] = channel
@@ -95,7 +110,7 @@ class Admin:
                              reply_markup=ReplyKeyboardMarkup(options, one_time_keyboard=True))
             return Publish.PublishOrCancel
 
-    @_tryExcept
+    @_try_except
     def publish_final(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
             bot.send_message(chat_id=self.config.get_channel_id(user_data['channel_name']), text=self.get_text(user_data))
@@ -105,16 +120,17 @@ class Admin:
 
         return ConversationHandler.END
 
-    @_tryExcept
+    @_try_except
     def publish_cancel(self, bot: Bot, update: Update, user_data):
         bot.send_message(chat_id=update.message.chat_id, text="Публикация отменена!")
         return ConversationHandler.END
 
-    @_tryExcept
+    @_try_except
     def get_version(self, bot: Bot, update: Update):
         bot.send_message(chat_id=update.message.chat_id, text=self.config.get_version())
 
-    @_tryExcept
+    @_try_except
+    @_ensure_no_keyboards
     def distribute_request(self, bot: Bot, update: Update, user_data):
         chats = list(map(lambda x: [x], self.config.get_channel_names()))
         chats.append(["Cancel"])
@@ -131,7 +147,7 @@ class Admin:
 
         return Distribute.PublishOrCancel
 
-    @_tryExcept
+    @_try_except
     def distribute_show_and_confirm(self, bot: Bot, update: Update, user_data):
         channel = update.message.text
         user_data['channel_name'] = channel
@@ -173,8 +189,8 @@ class Admin:
 
                 bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
                 for ric in data:
-                    bot.send_message(chat_id=update.message.chat_id, text=ric + " " + rics[ric])
-                    msg = ""
+                    # bot.send_message(chat_id=update.message.chat_id, text=ric + " " + rics[ric])
+                    msg = ric + " " + rics[ric] + "\r\n"
                     for name in data[ric]:
                         msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
                     bot.send_message(chat_id=update.message.chat_id, text=msg)
@@ -190,7 +206,7 @@ class Admin:
                 bot.send_message(chat_id=update.message.chat_id, text="Не удалось получить котировки! Попробуйте снова")
                 return ConversationHandler.END
 
-    @_tryExcept
+    @_try_except
     def distribute_finally(self, bot: Bot, update: Update, user_data):
         if update.message.text == "Yes":
             rics = user_data['rics']
@@ -209,20 +225,19 @@ class Admin:
             bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
         return ConversationHandler.END
 
-    @_tryExcept
+    @_try_except
     def distribute_cancel(self, bot: Bot, update: Update, user_data):
         bot.send_message(chat_id=update.message.chat_id, text="Рассылка отменена!")
         return ConversationHandler.END
+
+    @_try_except
+    def incorrect_input_handler(self, bot: Bot, update: Update, user_data):
+        bot.send_message(chat_id=update.message.chat_id, text="Пожалуйста, завершите процедуру публикации или отправьте /cancel для её отмены")
 
 def create_handlers(config: Config, trkd: TRKD, admin_filter):
     admin = Admin(config, trkd)
 
     return [
-        # - Start command
-        CommandHandler(command="start", callback=admin.start, filters=admin_filter),
-        # - Version command
-        CommandHandler(command="version", callback=admin.get_version, filters=admin_filter),
-
         ConversationHandler(
             entry_points=[CommandHandler(command="rics", callback=admin.distribute_request, filters=admin_filter),
                           CallbackQueryHandler(pattern="rics", callback=admin.distribute_request)],
@@ -233,7 +248,8 @@ def create_handlers(config: Config, trkd: TRKD, admin_filter):
                     MessageHandler(filters=Filters.text, callback=admin.distribute_finally, pass_user_data=True)],
 
             },
-            fallbacks=[CommandHandler("cancel", callback=admin.distribute_cancel)]
+            fallbacks=[CommandHandler("cancel", callback=admin.distribute_cancel),
+                       MessageHandler(callback=admin.incorrect_input_handler, filters=Filters.all)]
         ),
 
         # - Incoming contact details
@@ -246,6 +262,13 @@ def create_handlers(config: Config, trkd: TRKD, admin_filter):
                 Publish.ChooseChats: [MessageHandler(callback=admin.publish_chats, pass_user_data=True, filters=Filters.text)],
                 Publish.PublishOrCancel: [MessageHandler(filters=Filters.text, callback=admin.publish_final, pass_user_data=True)],
             },
-            fallbacks=[CommandHandler("cancel", callback=admin.publish_cancel)]
-        )
+            fallbacks=[CommandHandler("cancel", callback=admin.publish_cancel),
+                       MessageHandler(callback=admin.incorrect_input_handler, filters=Filters.all)],
+
+        ),
+
+        # - Start command
+        CommandHandler(command="start", callback=admin.start, filters=admin_filter),
+        # - Version command
+        CommandHandler(command="version", callback=admin.get_version, filters=admin_filter),
     ]
