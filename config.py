@@ -9,16 +9,28 @@ class Ric:
         self.name = name if name != "" else ric
 
 
+class Field:
+    def __init__(self, name, field):
+        self.name = name
+        self.field = field
+
+
 class Publish:
     def __init__(self, data):
         self.schedule = data['schedule']
         self.rics = []
+        self.fields = []
+
         for ric in data['rics']:
             self.rics.append(Ric(ric, data['rics'][ric]))
+        for field in data['fields']:
+            self.fields.append(Field(field['name'], field['field']))
 
     def get_rics(self) -> List[Ric]:
         return self.rics
 
+    def get_fields(self) -> List[Ric]:
+        return self.fields
 
 class Channel:
     def __init__(self, data):
@@ -37,28 +49,6 @@ class Channel:
 
 
 class Config:
-    fields_data = [
-        {
-            "name": "Мин",
-            "field": "BID"
-        }, {
-            "name": "Макс",
-            "field": "ASK"
-        }, {
-            "name": "Среднее",
-            "field": "PRIMACT_1"
-        }, {
-            "name": "Изменение",
-            "field": "SEC_ACT_1"
-        }, {
-            "name": "Дата",
-            "field": "GV1_DATE"
-        }, {
-            "name": "Дата",
-            "field": "VALUE_DT1"
-        }
-    ]
-
     def __init__(self, config_file, channels_file):
         self.config = ConfigParser()
         self.config.read_file(open(config_file))
@@ -123,12 +113,12 @@ class Config:
 
         return None
 
-    def get_fields(self):
+    def get_fields(self, fields_data: List[Field]):
         template = {}
         fields = {}
-        for item in self.fields_data:
-            field = item['field']
-            name = item['name']
+        for item in fields_data:
+            field = item.field
+            name = item.name
             fields[field] = name
 
             if name not in template:

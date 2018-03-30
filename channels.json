@@ -1,17 +1,27 @@
 [
   {
-    "address": "@tr_commodities_metals",
+    "address": "@tr_commodities_metals_test",
     "name": "Metals",
     "publish": {
       "schedule": "once_a_minute",
       "rics": {
-        "CIS-IND-RU-RB12-T": "CIS-IND-RU-RB12-T, руб/т",
-        "CIS-INDX-RU-HR4-T": "CIS-INDX-RU-HR4-T, руб/т",
-        "CIS-INDX-RU-CR1-T": "CIS-INDX-RU-CR1-T, руб/т"
-      }
+        "CIS-IND-RU-RB12-T": "Индекс цен на стальную арматуру А500С 12 мм в РФ, со склада металлотрейдера, руб./т с НДС",
+        "CIS-INDX-RU-HR4-T": "Индекс цен на стальной горячекатаный лист марки стали Ст3 толщиной 4 мм в РФ, со склада металлотрейдера, руб./т с НДС",
+        "CIS-INDX-RU-CR1-T": "Индекс цен на стальной холоднокатаный лист марки стали 08пс толщиной 1 мм в РФ, со склада металлотрейдера, руб./т с НДС"
+      },
+      "fields": [{
+            "name": "Среднее",
+            "field": "PRIMACT_1"
+        }, {
+            "name": "Изменение",
+            "field": "SEC_ACT_1"
+        }, {
+            "name": "Дата",
+            "field": "VALUE_DT1"
+        }]
     }
   }, {
-    "address": "@tr_commodities_energy",
+    "address": "@tr_commodities_energy_test",
     "name": "Energy",
     "publish": {
       "schedule": "once_a_minute",
@@ -23,17 +33,49 @@
         "KTS-GL95-IDXRUS": "Индекс цены на спотовом рынке Европейской части России на автобензин Премиум-95 КОРТЕС-Премиум, руб/т",
         "KTS-GL92-IDXRUS": "Индекс цены на спотовом рынке Европейской части России на автобензин Регуляр-92 КОРТЕС-Регуляр, руб/т",
         "KTS-GL98-IDXRUS": "Индекс цены на спотовом рынке Европейской части России на автобензин Супер-98 КОРТЕС-Супер, руб/т"
-      }
+      },
+      "fields": [{
+            "name": "Среднее",
+            "field": "PRIMACT_1"
+        }, {
+            "name": "Изменение",
+            "field": "SEC_ACT_1"
+        }, {
+            "name": "Дата",
+            "field": "VALUE_DT1"
+        }, {
+            "name": "Дата",
+            "field": "GV1_DATE"
+        }]
     }
   }, {
-    "address": "@tr_commodities_agriculture",
+    "address": "@tr_commodities_energy_test",
     "name": "Agriculture",
     "publish": {
       "schedule": "once_a_minute",
       "rics": {
-        "KTS-CFUABS-CPT": "Фуражная кукуруза СРТ Одесса, дол/т",
-        "KTS-W12RUBS-FOB": "Продовольственная пшеница с протеином 12,5% ФОБ Новороссийск, дол/т"
-      }
+        "KTS-CFUABS-CPT": "Фуражная кукуруза CPT Одесса, дол/т",
+        "KTS-W12RUBS-FOB": "Продовольственная пшеница с протеином 12,5% FOB Новороссийск, дол/т"
+      },
+      "fields": [{
+            "name": "Мин",
+            "field": "BID"
+        }, {
+            "name": "Макс",
+            "field": "ASK"
+        }, {
+            "name": "Среднее",
+            "field": "PRIMACT_1"
+        }, {
+            "name": "Изменение",
+            "field": "SEC_ACT_1"
+        },{
+            "name": "Дата",
+            "field": "VALUE_DT1"
+        }, {
+            "name": "Дата",
+            "field": "GV1_DATE"
+        }]
     }
   }
 ]

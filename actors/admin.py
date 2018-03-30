@@ -157,6 +157,7 @@ class Admin:
         else:
             # todo fetch rics and create array; store to user_data; send now to admin to confirm
             rics_data = self.config.get_channel_by_name(channel).get_publications()[0].get_rics()
+            field_data = self.config.get_channel_by_name(channel).get_publications()[0].get_fields()
 
             rics = {}
             for item in rics_data:
@@ -166,7 +167,7 @@ class Admin:
 
             quotes = self.trkd.get_quotelist(ric_names)
 
-            fields, template = self.config.get_fields()
+            fields, template = self.config.get_fields(field_data)
 
             if quotes is not None:
                 data = {}
@@ -190,7 +191,7 @@ class Admin:
                 bot.send_message(chat_id=update.message.chat_id, text="Подтвердите действие. Отправить рассылку")
                 for ric in data:
                     # bot.send_message(chat_id=update.message.chat_id, text=ric + " " + rics[ric])
-                    msg = ric + " " + rics[ric] + "\r\n"
+                    msg = rics[ric] + "\r\n"
                     for name in data[ric]:
                         msg += name + ": " + str(data[ric][name]['value']) + "\r\n"
                     bot.send_message(chat_id=update.message.chat_id, text=msg)
